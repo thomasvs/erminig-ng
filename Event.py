@@ -139,4 +139,7 @@ class Event:
 			return 0
 
 	def get_alarm(self):
-		return self.alarm
+		"""
+		@rtype: str
+		"""
+		return str(self.alarm)
