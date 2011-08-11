@@ -55,5 +55,7 @@ calendar_service.GetCalendarEventEntry(urllib.quote("/calendar/feeds/" + googlei
 Testsuite
 ---------
 logger.py imports hildon, so most likely you'll have to run inside sbox with
-run-standalone.sh python2.5 /usr/bin/trial test_gdata_calendar.py
+run-standalone.sh python2.5 /usr/bin/trial test
 
+Some tests can be run outside of sbox, like test_gdata_calendar, because it
+fakes out the hildon python module and doesn't import libcalaccess.so
