@@ -116,20 +116,40 @@ def isEventFullDay(date):
 	else:
 		return 0
 
+# iso8601 forms:
+#     YYYY (eg 1997)
+#     YYYY-MM (eg 1997-07)
+#     YYYY-MM-DD (eg 1997-07-16)
+#     YYYY-MM-DDThh:mmTZD (eg 1997-07-16T19:20+01:00) -> 17 or 21 chars
+#     YYYY-MM-DDThh:mm:ssTZD (eg 1997-07-16T19:20:30+01:00) -> 20 or 24 chars
+#     YYYY-MM-DDThh:mm:ss.sTZD (eg 1997-07-16T19:20:30.45+01:00) -> 22 or 26
+# with TZD: Z or +hh:mm or -hh:mm)
+
 def iso8601ToTimestamp(date):
+	"""
+	@type date: str
+	"""
+	# FIXME: Google passes dtstart like 2008-12-10T00:00:00
+	if not date[-6] in ('+', '-') and not date.endswith('Z'):
+		date += 'Z'
+
 	return int(iso8601.parse(date))
 
 def timestampToIso8601(date):
 	d = iso8601.tostring(date)
 	if (len(d) == 24):
+		# YYYY-MM-DDThh:mm:ss with +/-hh:mm
 		return d
+
 	if (string.find(d, "Z") == -1):
+		# any other with +/-hh:mm
 		return d
-	else:
-		if (len(d) == 20):
-			return string.replace(d, "Z", ".000Z")
-		else:
-			return string.replace(d, "Z", ":00.000Z")
+
+	if (len(d) == 20):
+		# YYYY-MM-DDThh:mm:ssZ
+		return string.replace(d, "Z", ".000Z")
+
+	return string.replace(d, "Z", ":00.000Z")
 
 def removeCancelledEventLocally(cid, gid):
 	# get local ID from googleId:
