@@ -49,7 +49,8 @@ class EVENT(Structure):
 			("ctime", c_int),
 			("mtime", c_int),
 			("tzOffset", c_int),
-			("rrule", c_char_p)]
+			("rrule", c_char_p),
+			("alarm", c_int)]
 
 
 def createLocalCalendar(name):
@@ -65,7 +66,8 @@ def addLocalCalendarEntry(calId, evt):
 	ret = (lib.addLocalCalendarEntry(calId, evt.get_start(), \
 			evt.get_end(), evt.get_title(), evt.get_where(), \
 			evt.get_description(), evt.get_fullday(),\
-			evt.get_cdate(), evt.get_rrule(), evt.get_rtype()))
+			evt.get_cdate(), evt.get_rrule(), evt.get_rtype(), \
+			evt.get_alarm()))
 
 	if not ret:
 		return None
@@ -94,13 +96,13 @@ def updateLocalEvent(cid, evt, lid):
 	return lib.updateLocalEvent(cid, str(lid), evt.get_title(), \
 			evt.get_description(), evt.get_where(), \
 			evt.get_start(), evt.get_end(), evt.get_rrule(), \
-			evt.get_rtype(), evt.get_until())
+			evt.get_rtype(), evt.get_until(), evt.get_alarm())
 
 def getNewEventById(cid, lid, maxTimestamp):
 	e = EVENT()
 	lib.getEventById(cid, str(lid), pointer(e))
 	if e.ctime < maxTimestamp:
-		return (e.id, e.start, e.end, e.title, e.where, e.descr, e.allday, e.tzOffset, e.rrule)
+		return (e.id, e.start, e.end, e.title, e.where, e.descr, e.allday, e.tzOffset, e.rrule, e.alarm)
 	else:
 		return None
 
@@ -108,6 +110,6 @@ def getUpdatedEventById(cid, lid, maxTimestamp):
 	e = EVENT()
 	lib.getEventById(cid, str(lid), pointer(e))
 	if e.mtime < maxTimestamp:
-		return (e.id, e.start, e.end, e.title, e.where, e.descr, e.allday, e.tzOffset, e.rrule)
+		return (e.id, e.start, e.end, e.title, e.where, e.descr, e.allday, e.tzOffset, e.rrule, e.alarm)
 	else:
 		return None

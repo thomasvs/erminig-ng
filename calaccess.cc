@@ -3,6 +3,7 @@
 #include <CComponent.h>
 #include <CRecurrence.h>
 #include <CEvent.h>
+#include <CAlarm.h>
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -21,6 +22,7 @@ struct event_t {
 	int mtime;
 	int tzOffset;
 	const char *rrule;
+	int alarm;
 };
 
 extern "C" const char *getAllLocalCalendarsIDs()
@@ -86,7 +88,7 @@ extern "C" int createLocalCalendar(char *title)
 
 extern "C" const char *addLocalCalendarEntry(int calId, int start, int end, 
 		char *title, char *where, char *descr, 
-		int fullday, int cdate, char *rrule, int rtype)
+		int fullday, int cdate, char *rrule, int rtype, int alarm)
 {
 	bool newEvtRes;
 	int error;
@@ -101,17 +103,14 @@ extern "C" const char *addLocalCalendarEntry(int calId, int start, int end,
 	newEvt->setCreatedTime(cdate);
 	newEvt->setLastModified(cdate);
 	newEvt->setAllDay(fullday);
-	if (fullday == 1) {
-		newEvt->setTzOffset(0);
-		newEvt->setTzid(":UTC");
-	}
+	newEvt->setTzOffset(CMulticalendar::MCInstance()->getSystemTimeShift());
+	newEvt->setTzid(CMulticalendar::MCInstance()->getSystemTimeZone());
 
 	cal = mc->getCalendarById(calId, error);
 	if (cal == NULL) {
 		delete newEvt;
 		return (const char *)strdup(newEvtId.c_str());
 	}
-
 	// Recurrence handling
 	string rrule_s = string(rrule);
 	if (rrule_s.size() > 0) {
@@ -122,7 +121,12 @@ extern "C" const char *addLocalCalendarEntry(int calId, int start, int end,
 		rec->setRrule(rrules);
 		newEvt->setRecurrence(rec);
 	}
-	
+
+	if (alarm >= 0)
+		newEvt->setAlarm(new CAlarm(alarm*60, 1));
+	else
+		newEvt->removeAlarm();
+
 	newEvtRes = cal->addEvent(newEvt, error);
 	if (newEvtRes) {
 		newEvtId = newEvt->getId();
@@ -135,7 +139,7 @@ extern "C" const char *addLocalCalendarEntry(int calId, int start, int end,
 
 extern "C" int updateLocalEvent(int cid, char *localId, char *summary,
 		char *descr, char *where, int start, int end, char *rrule,
-		int rtype, int until)
+		int rtype, int until, int alarm)
 {
 	int error;
 
@@ -168,6 +172,11 @@ extern "C" int updateLocalEvent(int cid, char *localId, char *summary,
 		evt->setRecurrence(rec);
 		evt->setUntil(until);
 	}
+
+	if (alarm >= 0)
+		evt->setAlarm(new CAlarm(alarm*60, 1));
+	else
+		evt->removeAlarm();
 
 	bool res = cal->modifyEvent(evt, error);
 
@@ -334,6 +343,12 @@ extern "C" int getEventById(int cid, char *lid, event_t *e)
 
 		string rrule(rruleStream.str());
 		e->rrule = (const char*)strdup(rrule.erase(rrule.size()-1).c_str());
+	}
+
+	CAlarm *alrm = evt->getAlarm();
+	if (alrm != NULL) {
+		int alarm = alrm->getTrigger();
+		e->alarm = (alarm == -1 ? -1 : alarm/60);
 	}
 
 	delete evt;

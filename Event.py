@@ -26,7 +26,7 @@ import logger
 
 class Event:
 	def __init__(self, title, where, descr, start_time, end_time, \
-			full_day, id, cdate, rrule=None):
+			full_day, id, cdate, rrule=None, alarm=-1):
 		self.title = title
 		self.where = where
 		self.descr = descr
@@ -37,6 +37,7 @@ class Event:
 		self.id = id
 		self.tzOffset = 0
 		self.rrule = rrule
+		self.alarm = alarm
 
 	def set_tzOffset(self, o):
 		self.tzOffset = o
@@ -80,7 +81,7 @@ class Event:
 		return int(self.cdate)
 
 	def get_until(self):
-		if self.rrule == None:
+		if self.rrule == None or self.rrule == "":
 			return -1
 
 		rules = self.rrule.split(";")
@@ -137,3 +138,5 @@ class Event:
 		else:
 			return 0
 
+	def get_alarm(self):
+		return self.alarm

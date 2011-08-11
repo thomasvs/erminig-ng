@@ -137,12 +137,9 @@ def iso8601ToTimestamp(date):
 
 def timestampToIso8601(date):
 	d = iso8601.tostring(date)
-	if (len(d) == 24):
+	if (len(d) == 24 or string.find(d, "Z") == -1):
 		# YYYY-MM-DDThh:mm:ss with +/-hh:mm
-		return d
-
-	if (string.find(d, "Z") == -1):
-		# any other with +/-hh:mm
+		# or any other with +/-hh:mm
 		return d
 
 	if (len(d) == 20):
@@ -246,6 +243,7 @@ def getNewEventsFromGoogle(pid, localSource, remoteSource, lastSync, \
 		start_time = ""
 		end_time = ""
 		full_day = False
+		alarm = -1
 		if e.recurrence <> None:
 			recurrence = process_recurrence(e.recurrence.text)
 			if not recurrence:
@@ -258,6 +256,9 @@ def getNewEventsFromGoogle(pid, localSource, remoteSource, lastSync, \
 			start_time = iso8601ToTimestamp(recurrence['dtstart'])
 			end_time = iso8601ToTimestamp(recurrence['dtend'])
 			fullday = isEventFullDay(recurrence['dtstart'])
+
+			if len(e.reminder) > 0:
+				alarm = int(e.reminder[0].minutes)
 		else:
 			start_time = iso8601ToTimestamp(e.when[0].start_time)
 			end_time = iso8601ToTimestamp(e.when[0].end_time)
@@ -265,19 +266,23 @@ def getNewEventsFromGoogle(pid, localSource, remoteSource, lastSync, \
 			# timing event (only date)
 			fullday = isEventFullDay(e.when[0].start_time)
 
+			if len(e.when[0].reminder) > 0:
+				alarm = int(e.when[0].reminder[0].minutes)
+
 		where = e.where[0].value_string
 		description =  e.content.text
 		id = urllib.unquote((e.id.text.rpartition("/"))[2])
 		cdate = time.time()
 
-
 		if (fullday == 1):
+			start_time += time.timezone
+			end_time += time.timezone
 			if ((start_time - end_time) == 0):
 				end_time = start_time + 24*3600
 
 		event = Event(title, where, description, \
 				start_time, end_time, fullday, id,\
-				cdate, rrule=rstring)
+				cdate, rrule=rstring, alarm=alarm)
 		if e.event_status.value == "CANCELED":
 			# remove event locally:
 			removeCancelledEventLocally(localSource, id)
@@ -356,8 +361,10 @@ def createNewGoogleEvent(evt, googleid, pid):
 	if evt.get_rrule() <> "":
 		rec_data = create_rrule(start_time, end_time, evt.get_rrule())
 		event.recurrence = gdata.calendar.Recurrence(text=rec_data)
+		event.reminder.append(gdata.calendar.Reminder(minutes=evt.get_alarm()));
 	else:
 		event.when.append(gdata.calendar.When(start_time=start_time, end_time=end_time))
+		event.when[0].reminder.append(gdata.calendar.Reminder(minutes=evt.get_alarm()));
 
 	new_event = None
 	try:
@@ -390,7 +397,7 @@ def getNewEventsFromLocal(pid, localSource, remoteSource, lastSync, progress):
 		update_progress(progress, progress_val)
 
 		event = Event(e[3], e[4], e[5], e[1], e[2], e[6], \
-				e[0], 0, rrule=e[8])
+				e[0], 0, rrule=e[8], alarm=e[9])
 		event.set_tzOffset(e[7])
 		gid = createNewGoogleEvent(event, remoteSource, pid)
 
@@ -462,8 +469,16 @@ def updateGoogleEvent(evt, googleid, pid):
 	if evt.get_rrule() <> "":
 		rec_data = create_rrule(start_time, end_time, evt.get_rrule())
 		event.recurrence = gdata.calendar.Recurrence(text=rec_data)
+		if len(event.reminder) > 0:
+			event.reminder[0].minutes = evt.get_alarm()
+		else:
+			event.reminder.append(gdata.calendar.Reminder(minutes=evt.get_alarm()));
 	else:
 		event.when[0] = gdata.calendar.When(start_time=start_time, end_time=end_time)
+		if len(event.when[0].reminder) > 0:
+			event.when[0].reminder[0].minutes = evt.get_alarm()
+		else:
+			event.when[0].reminder.append(gdata.calendar.Reminder(minutes=evt.get_alarm()));
 
 	try:
 		google_api.run_google_action(google_api.gd_client.UpdateEvent, event.GetEditLink().href, event)
@@ -485,7 +500,7 @@ def getUpdatedEventsFromLocal(pid, localSource, remoteSource, lastSync, progress
 		update_progress(progress, progress_val)
 
 		event = Event(e[3], e[4], e[5], e[1], e[2], e[6], \
-				e[0], 0, rrule=e[8])
+				e[0], 0, rrule=e[8], alarm=e[9])
 		event.set_tzOffset(e[7])
 		gid = updateGoogleEvent(event, remoteSource, pid)
 
