@@ -1,0 +1,3 @@
+- put all python files in a subdirectory instead of in the root
+- put code in subdir ?
+- factor out code that really needs maemo/hildon vs general code

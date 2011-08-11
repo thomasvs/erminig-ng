@@ -1,0 +1,59 @@
+Erminig Database
+----------------
+- sqlite3 database is stored in ~/.erminig.db
+- showing tables:
+  .table
+- describing schema:
+  .schema GoogleAccounts
+- showing raw contents:
+  .dump GoogleAccounts
+- Profiles table:
+  - localSource is the cid used in libcalaccess, or CalendarId in
+    the Calendar table in the calendar database
+
+calendar Database
+-----------------
+- sqlite3 database is stored in ~/.calendar/calendardb
+- Calendars contain the various calendars
+
+
+Debugging
+---------
+- run erminig with -d to dump stack traces to terminal
+
+libcalaccess
+------------
+- C++ library, source is in erminig
+  - addLocalCalendarEntry(calId, evt)
+
+- accessed through cwrapper.py
+extern "C" const char *addLocalCalendarEntry(int calId, int start, int end, 
+                char *title, char *where, char *descr, 
+                int fullday, int cdate, char *rrule, int rtype, int alarm)
+- accessed through cwrapper.py
+  - addLocalCalendarEntry(calId, evt)
+
+Reproducing sync crashes
+------------------------
+- Figure out which calendar it crashes on
+- Figure out which direction it crashes on
+- reset the lastUpdate (from Google) or lastLocalUpdate (from local)
+  time for that profile:
+  UPDATE Profiles SET lastUpdate=1303422406 WHERE lastUpdate=1312985199
+
+GData
+-----
+- creating a CalendarService and testing:
+
+calendar_service = gdata.calendar.service.CalendarService()
+calendar_service.email = 'username@domain.com'
+calendar_service.password = 'mypassword'
+calendar_service.source = 'Google-Calendar_Python_Sample-1.0'
+calendar_service.ProgrammaticLogin()
+calendar_service.GetCalendarEventEntry(urllib.quote("/calendar/feeds/" + googleid + "/private/full/" + gid)
+
+Testsuite
+---------
+logger.py imports hildon, so most likely you'll have to run inside sbox with
+run-standalone.sh python2.5 /usr/bin/trial test_gdata_calendar.py
+
