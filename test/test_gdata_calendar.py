@@ -74,7 +74,8 @@ END:VTIMEZONE
             1303822800, 1303837200, 0, '3169', 0,
             rrule='FREQ=DAILY;COUNT=2;INTERVAL=2', alarm=0)
 
+        # bug was fixed by returning a str from get_alarm
         e.reminder[0].minutes = evt.get_alarm()
-        self.assertEquals(e.reminder[0].minutes, 0)
+        self.assertEquals(e.reminder[0].minutes, '0')
 
-        self.assertRaises(AttributeError, e.ToString)
+        self.failUnless(e.ToString())
