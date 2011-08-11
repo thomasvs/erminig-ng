@@ -1,0 +1,97 @@
+Source: erminig
+Section: user/office
+Priority: extra
+Maintainer: Pascal Jermini <lorelei@garage.maemo.org>
+Build-Depends: debhelper (>= 5), calendar-backend-dev
+Standards-Version: 3.7.2
+
+Package: erminig
+Architecture: any
+Depends: ${shlibs:Depends}, python-gdata (>=2.0.2-0maemo1), python-hildon (>=0.9.0-1maemo10), python-gtk2 (>=2.12.1-6maemo4+0m5), python2.5 (>=2.5.2-11.1maemo3+0m5), python-alarm (>=0.1-0maemo1)
+Description: Fremantle Calendar <-> Google Calendar synchronization tool
+ Python application to synchronize events between Google Calendar and the
+ built-in Calendar of Fremantle
+XB-Maemo-Icon-26:
+ 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
+

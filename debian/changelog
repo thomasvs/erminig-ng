@@ -1,0 +1,52 @@
+erminig (0.2.11) unstable; urgency=low
+
+  * FIX: Fixed broken icons since upgrade to PR1.2
+  * FIX: Log Window can be scrolled horizontally
+  * FIX: Recurring events: wrong parsing of some RRULES
+
+ -- Pascal Jermini <lorelei@garage.maemo.org>  Sun, 20 Jun 2010 23:33:58 +0200
+
+erminig (0.2.10) unstable; urgency=low
+
+  * TMP: Display more debugging infos
+
+ -- Pascal Jermini <lorelei@garage.maemo.org>  Wed, 19 May 2010 23:48:51 +0200
+
+erminig (0.2.9) unstable; urgency=low
+
+  * ENH: More errors conditions are raised to the user
+  * FIX: Removed crashes when calendars not available anymore
+  * NEW: Automatic Daily synchronization (patch by Jay Xie)
+  * FIX: Detect if no Internet connection and raise an error
+  * ENH: "Suggest" a name for new calendar names when adding profiles
+  * ENH: In "add profile", auto-select a Google account if only one is present
+  * ENH: In "add profile", ask for new Google account on startup if none
+    present
+  * NEW: Support for recurring events
+
+ -- Pascal Jermini <lorelei@garage.maemo.org>  Mon, 17 May 2010 00:05:13 +0200
+
+erminig (0.2.1) unstable; urgency=low
+
+  * FIX: buttons at the bottom of the UI are inactive if no profile is
+         selected
+  * ENH: Newly created local/remote calendars are automatically selected
+         in the "New profile" dialog
+  * FIX: Removed obsolete calls in Hildon for progress bars
+  * FIX: Removed potential pitfall in Google action handler
+  * FIX: Full-day events spanning several days are now correctly stored in
+         Google (before, the last day was chopped off)
+  * NEW: Command-line arguments for syncing from crontabs
+  * ENH: Made "Sync-one-profile" button more explicit
+  * NEW: Possibility to dump stack traces in terminal instead of GUI
+  * FIX: Don't crash if publication date of Google event is too far away in
+         the past
+
+ -- Pascal Jermini <lorelei@garage.maemo.org>  Sat, 20 Mar 2010 01:13:12 +0100
+
+erminig (0.2.0-1) unstable; urgency=low
+
+  * Initial release 
+
+ -- Pascal Jermini <lorelei@garage.maemo.org>  Mon,  8 Mar 2010 23:30:39 +0100
+

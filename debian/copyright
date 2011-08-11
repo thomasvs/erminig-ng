@@ -1,0 +1,33 @@
+This package was debianized by Pascal Jermini <lorelei@garage.maemo.org> on
+Mon,  8 Mar 2010 23:30:39 +0100.
+
+Upstream Author: Pascal Jermini <lorelei@garage.maemo.org>
+
+Copyright: 2010, Pascal Jermini
+
+License:
+
+ Erminig-NG (A two-way synchronization tool for Google-Calendar and
+              "Fremantle-Calendar", the calendar of Maemo 5)
+ 
+ Copyright (c) 2010 Pascal Jermini <lorelei@garage.maemo.org>
+ 
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU Lesser General Public License
+ version 2.1, as published by the Free Software Foundation.
+ 
+ This program is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ Lesser General Public License for more details.
+ 
+ You should have received a copy of the GNU Lesser General Public
+ License along with this library; if not, write to:
+ 
+   Free Software Foundation, Inc.
+   51 Franklin Street, Fifth Floor,
+   Boston, MA 02110-1301 USA
+
+The Debian packaging is (C) 2010, Pascal Jermini <lorelei@garage.maemo.org> and
+is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
+

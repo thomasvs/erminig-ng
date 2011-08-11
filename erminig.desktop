@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Name=Erminig
+Comment=Erminig
+Exec=/usr/bin/erminig
+Terminal=false
+Type=Application
+X-HildonDesk-ShowInToolbar=true
+X-Osso-Type=application/x-executable
+Name[en_US]=Erminig
+Icon=erminig
+X-Window-Icon=erminig
+

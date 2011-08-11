@@ -1,0 +1,417 @@
+#!/usr/bin/python2.5
+
+import gtk
+import hildon
+import time
+import sys, getopt
+
+import version
+import settings_ui
+import profile_ui
+import dblayer
+import profiles
+import consts
+import logger
+import google_api
+import google_accounts
+import erminig_core
+
+import gtkexcepthook
+from ErminigError import *
+import error_win
+
+dblayer.initializeDB()
+
+# Brrrrr, must change!
+global_profile_list = None
+
+pixdir = "/usr/share/erminig/pixmaps"
+
+# --------------------- UI Callbacks --------------------------
+def show_about(button, rootwin):
+	note = hildon.hildon_note_new_information(rootwin, \
+			"Erminig-NG version %s \n\n (c) 2010 Pascal Jermini "\
+			"<lorelei@garage.maemo.org>\n\nA two-way "\
+			"synchronization tool between Google Calendar and "\
+			"the Calendar Utility of Maemo 5" \
+			% (version.erminig_version))
+
+	note.connect("delete-event", lambda w,d: w.destroy())
+	gtk.Dialog.run(note)
+
+def show_log(widget, data):
+	logger.display(data)
+
+def show_settings(widget, data):
+	settings_ui.display(data)
+
+def add_profile(widget, data):
+	profile_ui.display(data)
+	update_profile_list()
+
+def remove_profile(widget, data):
+	profile_id = get_selected_id()
+	if profile_id == None:
+		return
+
+	titles = profiles.get_titles_by_id(profile_id)
+	s = "Are you sure that you want to delete the synchronization "\
+			"profile between '%s' and '%s'? All synchronization "\
+			"information will be lost (but no data will be "\
+			"erased from your calendars)" % titles
+	dialog = hildon.Note("confirmation", data, s)
+	dialog.set_button_texts("Yes", "No")
+	ans = dialog.run()
+	dialog.destroy()
+
+	if ans == gtk.RESPONSE_OK:
+		profiles.remove_by_id(profile_id)
+		update_profile_list()
+
+def edit_profile(widget, data):
+	selected_id = get_selected_id()
+	if selected_id:
+		profile_ui.display(data, selected_id)
+		update_profile_list()
+
+def sync_profile(widget, data):
+	selected_id = get_selected_id()
+	if selected_id:
+		do_profile_sync(selected_id, data)
+
+def do_profile_sync(id, data):
+	profile = profiles.get_profile_by_id(id)
+	if not profile:
+		return
+
+	if profile['enabled'] == 0:
+		if not data:
+			print "Profile is disabled!"
+		else:
+			note = hildon.hildon_note_new_information(data, 
+				"Profile is disabled!")
+			note.connect("delete-event", lambda w,d: w.destroy())
+			gtk.Dialog.run(note)
+		return
+
+	# Connect to Google:
+	try:
+		if not google_api.switch_account(
+				google_accounts.get_account_by_id(profile['remoteAccountId'])):
+			return
+	except ErminigError, e:
+		error_win.display(e.title(), e.description())
+		return
+
+
+	currentTime = int(time.time())
+
+	dir = profile['direction']
+	erminig_core.prepare()
+
+	progress = None
+	if not data == None:
+		progress = gtk.ProgressBar()
+
+	if dir == consts.DIRECTION_BOTH or dir == consts.DIRECTION_FROM_GOOGLE_ONLY:
+		if not data == None:
+			dialog = hildon.Note("cancel", data, "Syncing events from Google", progressbar=progress)
+			dialog.show()
+			progress.set_fraction(0.0)
+
+		erminig_core.syncFromGoogle(id, \
+				profile['localSource'], \
+				profile['remoteSource'], \
+				profile['lastUpdate'], progress)
+
+		if not data == None:
+			dialog.destroy()
+
+	if dir == consts.DIRECTION_BOTH or dir == consts.DIRECTION_TO_GOOGLE_ONLY:
+		if not data == None:
+			dialog = hildon.Note("cancel", data, "Syncing events from local calendar", progressbar=progress)
+			dialog.show()
+			progress.set_fraction(0.0)
+
+		erminig_core.local_sync(id, \
+				profile['localSource'], \
+				profile['remoteSource'], \
+				profile['lastLocalUpdate'], currentTime, progress)
+
+		if not data == None:
+			dialog.destroy()
+
+	profiles.set_last_sync(profile['id'], currentTime, int(time.time()))
+
+	if not data == None:
+		update_profile_list()
+
+
+def sync_all_profiles(widget, data):
+	for i in profiles.get_all():
+		id = i[0]
+		do_profile_sync(id, data)
+
+# ---------------------- Misc. Utilities --------------------------
+
+def usage():
+	print """
+This is Erminig version """ + version.erminig_version + """
+
+usage: """
+
+	print "   " + sys.argv[0] + " [-h | --help] [--list | -l | --sync-all "
+	print "               | --sync=p1,p2,... | -a]"
+	print """
+	where: 
+	   -h or --help              : show this help page
+	   -l or --list              : list all profiles and their IDs
+	   -a or --sync-all          : synchronize all profiles 
+	   --sync-profile=p1,p2,...  : synchronize profiles with IDs p1 and p2 
+
+	   Development parameters:
+	   -d                        : disable Exception hook in GUI (dump
+	                               stack traces directly to terminal)
+	   """
+
+def dump_profile_list():
+	list = profiles.get_all()
+	print "Profile list:"
+	print "ID        Local - Remote"
+	print "--------------------------------------------------------"
+	for i in list:
+		print "%s      %s  -  %s" % (i[0], i[3], i[5])
+
+def get_selected_id():
+	global global_profile_list
+	ts = global_profile_list.get_selection()
+	(model, iter) = ts.get_selected()
+	if iter:
+		return model.get_value(iter, 0)
+	else:
+		return None
+	
+
+def update_profile_list():
+	global global_profile_list
+	ts = global_profile_list.get_selection()
+	(model, iter) = ts.get_selected()
+
+	model.clear()
+
+	for p in profiles.get_all():
+		id = p[0]
+		sync_type = None
+		local_source_title = p[3]
+		remote_source_title = p[5]
+		enabled = None
+		direction = None
+		lastUpdate = None
+
+		if p[1] == consts.SYNC_TYPE_CAL:
+			sync_type = gtk.gdk.pixbuf_new_from_file(pixdir + "/calendar.png")
+		elif p[1] == consts.SYNC_TYPE_CONTACTS:
+			sync_type = gtk.gdk.pixbuf_new_from_file(pixdir + "/abook.png")
+
+		if p[6] == 1:
+			enabled = gtk.STOCK_YES
+		else:
+			enabled = gtk.STOCK_NO
+
+		if p[7] == consts.DIRECTION_BOTH:
+			direction = gtk.gdk.pixbuf_new_from_file(pixdir + "/bidirection.png")
+		elif p[7] == consts.DIRECTION_TO_GOOGLE_ONLY:
+			direction = gtk.gdk.pixbuf_new_from_file(pixdir + "/lr.png")
+		elif p[7] == consts.DIRECTION_FROM_GOOGLE_ONLY:
+			direction = gtk.gdk.pixbuf_new_from_file(pixdir + "/rl.png")
+		
+		if p[8] == 0:
+			lastUpdate = "Never"
+		else:
+			lastUpdate = time.strftime("%Y-%m-%d %H:%M:%S", \
+					time.localtime(p[8]))
+		
+		model.append([id, enabled, sync_type, local_source_title, \
+				lastUpdate, direction, remote_source_title])
+
+# ---------------------- UI Definition --------------------------
+def create_menu(win):
+	menu = hildon.AppMenu()
+
+	logButton = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+	logButton.set_label("Log")
+	logButton.connect("clicked", show_log, win)
+	menu.append(logButton)
+
+	settingsButton = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+	settingsButton.set_label("Settings")
+	settingsButton.connect("clicked", show_settings, win)
+	menu.append(settingsButton)
+
+	aboutButton = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+	aboutButton.set_label("About")
+	aboutButton.connect("clicked", show_about, win)
+	menu.append(aboutButton)
+
+	menu.show_all()
+	
+	win.set_app_menu(menu)
+
+def create_toolbar(win):
+	toolbar = gtk.Toolbar()
+
+	# The "Add profile" button
+	pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(pixdir + "/add.png",\
+			48, 48)
+	image = gtk.Image()
+	image.set_from_pixbuf(pixbuf)
+	tb_add = gtk.ToolButton(image, "Add")
+	tb_add.connect("clicked", add_profile, None)
+	toolbar.insert(tb_add, 0)
+
+	# The "Edit profile" button
+	pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(pixdir + "/edit.png",\
+			48, 48)
+	image = gtk.Image()
+	image.set_from_pixbuf(pixbuf)
+	tb_edit = gtk.ToolButton(image, "Edit")
+	tb_edit.connect("clicked", edit_profile, None)
+	toolbar.insert(tb_edit, 1)
+
+	 # The "Sync profile" button
+	pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(pixdir + "/sync_one.png",\
+			48, 48)
+	image = gtk.Image()
+	image.set_from_pixbuf(pixbuf)
+	tb_sync = gtk.ToolButton(image, "Synchronize")
+	tb_sync.connect("clicked", sync_profile, win)
+	toolbar.insert(tb_sync, 2)
+
+	# The "Sync all profiles" button
+	pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(pixdir + "/refresh.png",\
+			48, 48)
+	image = gtk.Image()
+	image.set_from_pixbuf(pixbuf)
+	tb_sync_all = gtk.ToolButton(image, "Synchronize all")
+	tb_sync_all.connect("clicked", sync_all_profiles, win)
+	toolbar.insert(tb_sync_all, 3)
+
+	 # The "Remove profile" button
+	pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(pixdir + "/delete.png",\
+			48, 48)
+	image = gtk.Image()
+	image.set_from_pixbuf(pixbuf)
+	tb_remove = gtk.ToolButton(image, "Remove")
+	tb_remove.connect("clicked", remove_profile, win)
+	toolbar.insert(tb_remove, 4)
+
+	win.add_toolbar(toolbar)
+
+def create_listview(win):
+	profile_liststore = gtk.ListStore(int, str, gtk.gdk.Pixbuf, str, \
+			str, gtk.gdk.Pixbuf, str)
+
+
+	treeview = hildon.GtkTreeView(gtk.HILDON_UI_MODE_EDIT, \
+			profile_liststore)
+
+	# Profile enabled?
+	cell = gtk.CellRendererPixbuf()
+	col = gtk.TreeViewColumn()
+	col.pack_start(cell, True)
+	col.set_attributes(cell, stock_id=1)
+	treeview.append_column(col)
+
+	# Sync type
+	cell = gtk.CellRendererPixbuf()
+	col = gtk.TreeViewColumn()
+	col.pack_start(cell, True)
+	col.set_attributes(cell, pixbuf=2)
+	treeview.append_column(col)
+
+	# Source type
+	cell = gtk.CellRendererText()
+	col = gtk.TreeViewColumn("Device")
+	col.pack_start(cell, True)
+	col.set_attributes(cell, text=3)
+	treeview.append_column(col)
+
+	# Sync direction
+	cell = gtk.CellRendererPixbuf()
+	col = gtk.TreeViewColumn()
+	col.pack_start(cell, True)
+	col.set_attributes(cell, pixbuf=5)
+	treeview.append_column(col)
+
+	# Remote
+	cell = gtk.CellRendererText()
+	col = gtk.TreeViewColumn("Google")
+	col.pack_start(cell, True)
+	col.set_attributes(cell, text=6)
+	treeview.append_column(col)
+
+	# Last Update
+	cell = gtk.CellRendererText()
+	col = gtk.TreeViewColumn("Last Update")
+	col.pack_start(cell, True)
+	col.set_attributes(cell, text=4)
+	treeview.append_column(col)
+
+
+	treeview.set_headers_visible(True)
+
+	pannableArea = hildon.PannableArea()
+	pannableArea.add(treeview)
+	
+	win.add(pannableArea)
+
+	return treeview
+
+def main():
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "hlad", \
+				["help", "list", "sync-all", "sync-profile="])
+	except getopt.GetoptError, err:
+		print str(err)
+		usage()
+		sys.exit(2)
+
+	for o, a in opts:
+		if o in ("-h", "--help"):
+			usage()
+			sys.exit()
+		elif o in ("-l", "--list"):
+			dump_profile_list()
+			sys.exit()
+		elif o in ("-a", "--sync-all"):
+			sync_all_profiles(None, None)
+			sys.exit()
+		elif o == "--sync-profile":
+			sync_list = a.split(",")
+			for p in sync_list:
+				do_profile_sync(p, None)
+			sys.exit()
+		elif o == "-d":
+			sys.excepthook = sys.__excepthook__
+		else:
+			assert False, "unhandled option"
+	
+	program = hildon.Program.get_instance()
+
+	rootwin = hildon.StackableWindow()
+	rootwin.set_title("Erminig-NG")
+	rootwin.connect("destroy", lambda w: gtk.main_quit())
+
+	create_menu(rootwin)
+	create_toolbar(rootwin)
+	global global_profile_list
+	global_profile_list = create_listview(rootwin)
+
+	update_profile_list()
+
+	rootwin.show_all()
+	gtk.main()
+
+
+if __name__ == "__main__":
+	main()

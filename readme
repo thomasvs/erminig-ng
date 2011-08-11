@@ -1,0 +1,5 @@
+g++ calaccess.cc `pkg-config calendar-backend --cflags --libs ` -shared -o libcalaccess.so
+
+run-standalone.sh python2.5 erminig-ng
+
+python-gdata python-hildon
