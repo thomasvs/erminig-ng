@@ -535,20 +535,19 @@ def display(win, pid = None):
 	dialog.connect("delete-event", lambda w, d: w.destroy())
 
 	# editing profile
-	if pid <> None:
+	if pid is not None:
 		dialog.set_title("Edit Profile")
 		fill_form(pid)
 		current_profile_id = pid
 		editing = True
-	
+	else:
+		if google_accounts.get_registered_accounts_count() == 0:
+			ask_for_google_account_creation(dialog)
+		if google_accounts.get_registered_accounts_count() == 1:
+			# Pre-select the only Google account available:
+			account_selector.set_active(0, 0)
+
 	dialog.show_all()
-	if google_accounts.get_registered_accounts_count() == 0:
-		ask_for_google_account_creation(dialog)
-
-	if google_accounts.get_registered_accounts_count() == 1:
-		# Pre-select the only Google account available:
-		account_selector.set_active(0, 0)
-
 	dialog.run()
 
 local_source_list = None

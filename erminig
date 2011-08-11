@@ -100,9 +100,12 @@ def do_profile_sync(id, data):
 				google_accounts.get_account_by_id(profile['remoteAccountId'])):
 			return
 	except ErminigError, e:
-		error_win.display(e.title(), e.description())
-		return
+		if data:
+			error_win.display(e.title(), e.description())
+		else:
+			print e.title(), e.description()
 
+		return
 
 	currentTime = int(time.time())
 
@@ -150,7 +153,9 @@ def do_profile_sync(id, data):
 def sync_all_profiles(widget, data):
 	for i in profiles.get_all():
 		id = i[0]
-		do_profile_sync(id, data)
+		# is this profile enabled?
+		if i[6] == True:
+			do_profile_sync(id, data)
 
 # ---------------------- Misc. Utilities --------------------------
 

@@ -1,3 +1,15 @@
+erminig (0.2.12) unstable; urgency=low
+
+  * FIX: Do not try to sync disabled relationships
+  * FIX: More robust parsing of ISO8601 dates (patch by thomasvs)
+  * FIX: Silent errors in alarmed mode (patch by Jaffa)
+  * FIX: Remote source not populated (patch by mdengler)
+  * NEW: Initial framework for alarms sync (patch by geni4u)
+  * NEW: Added bug-tracker URL
+  * NEW: Proper optification
+
+ -- Pascal Jermini <lorelei@garage.maemo.org>  Sat,  8 Jan 2011 00:18:32 +0100
+
 erminig (0.2.11) unstable; urgency=low
 
   * FIX: Fixed broken icons since upgrade to PR1.2
