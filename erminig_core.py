@@ -435,7 +435,12 @@ def getLocalIdFromGoogleId(gid):
 		return None
 
 def updateGoogleEvent(evt, googleid, pid):
-
+    """
+    @type  evt:      L{Event.Event}
+    @param googleid: name of calendar ?
+    @type  googleid: unicode
+    @type  pid:      int
+    """
 	# get Googleid of event:
 	gid = getGoogleIdFromLocalId(evt.get_id())
 	if not gid:
