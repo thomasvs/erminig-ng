@@ -1,3 +1,5 @@
+# vi:si:noet:sw=4:sts=4:ts=8
+
 SYNC_TYPE_CAL = 0
 SYNC_TYPE_CONTACTS = 1
 

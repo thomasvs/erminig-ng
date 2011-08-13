@@ -1,3 +1,5 @@
+# vi:si:noet:sw=4:sts=4:ts=8
+
 class ErminigGoogleError(Exception):
 	def __init__(self, raw_data):
 		self.raw_data = raw_data

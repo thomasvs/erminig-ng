@@ -1,4 +1,5 @@
 #!/usr/bin/python2.5
+# vi:si:noet:sw=4:sts=4:ts=8
 #
 # Erminig-NG (A two-way synchronization tool for Google-Calendar and
 #              "Fremantle-Calendar", the calendar of Maemo 5)

@@ -1,3 +1,5 @@
+# vi:si:noet:sw=4:sts=4:ts=8
+
 """ISO-8601 date format support, sufficient for the profile defined in
 <http://www.w3.org/TR/NOTE-datetime>.
 

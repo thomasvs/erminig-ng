@@ -1,3 +1,5 @@
+# vi:si:noet:sw=4:sts=4:ts=8
+
 import gdata.calendar
 import gdata.calendar.service
 import atom.service
